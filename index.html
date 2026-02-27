@@ -1,158 +1,145 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Iman Quest - Islamic Quiz Game</title>
-
+<title>Shadow Fighter 2D</title>
 <style>
 body{
     margin:0;
-    font-family:Arial, sans-serif;
-    background:linear-gradient(135deg,#1e0033,#4b006e);
+    overflow:hidden;
+    background:#111;
     color:white;
-    text-align:center;
+    font-family:Arial;
 }
-.container{
-    max-width:400px;
+canvas{
+    background:linear-gradient(#222,#000);
+    display:block;
     margin:auto;
-    padding:20px;
 }
-button{
-    width:100%;
-    padding:10px;
-    margin:5px 0;
-    border:none;
-    border-radius:8px;
-    background:#ffcc00;
-    font-weight:bold;
-}
-button:hover{
-    background:#ffaa00;
-}
-.stats{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:10px;
-}
-.hidden{
-    display:none;
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
 }
 </style>
 </head>
-
 <body>
 
-<div class="container">
-    <h2>🌙 Iman Quest</h2>
-
-    <div class="stats">
-        <div>Level: <span id="level">1</span></div>
-        <div>❤️ <span id="life">3</span></div>
-        <div>✨ <span id="score">0</span></div>
-    </div>
-
-    <h3 id="question">প্রশ্ন এখানে আসবে</h3>
-    <div id="answers"></div>
-
-    <button onclick="startGame()">🔄 Restart</button>
+<div id="ui">
+    ❤️ Health: <span id="health">100</span>
+    &nbsp;&nbsp; 💰 Score: <span id="score">0</span>
 </div>
 
+<canvas id="game" width="800" height="400"></canvas>
+
 <script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-const questions = [
-{q:"ইসলামের প্রথম খলিফা কে?",a:["উমর (রা.)","আবু বকর (রা.)","উসমান (রা.)","আলী (রা.)"],c:1},
-{q:"কোরআন কত পারা?",a:["৩০","২৯","২৮","৩১"],c:0},
-{q:"ইসলামের নবী কে?",a:["মূসা (আ.)","ঈসা (আ.)","মুহাম্মদ (সা.)","ইব্রাহিম (আ.)"],c:2},
-{q:"রোজা কোন মাসে?",a:["শাবান","রমজান","মহররম","রজব"],c:1},
-{q:"হজ কোথায় করা হয়?",a:["মদিনা","জেদ্দা","মক্কা","তাইফ"],c:2},
-{q:"নামাজ কয় ওয়াক্ত?",a:["৪","৫","৬","৩"],c:1},
-{q:"আল্লাহ কতজন?",a:["১","২","৩","৪"],c:0},
-{q:"কাবা ঘর কোথায়?",a:["মদিনা","মক্কা","তুরস্ক","ইরাক"],c:1},
-{q:"ইসলামের পবিত্র গ্রন্থ?",a:["বাইবেল","তাওরাত","কোরআন","জবুর"],c:2},
-{q:"শেষ নবী কে?",a:["ঈসা (আ.)","মুহাম্মদ (সা.)","মূসা (আ.)","ইব্রাহিম (আ.)"],c:1}
-];
+let player={
+    x:100,
+    y:300,
+    width:40,
+    height:60,
+    color:"cyan",
+    dx:0,
+    dy:0,
+    jumping:false,
+    health:100
+};
 
-let level=1;
-let life=3;
+let enemy={
+    x:600,
+    y:300,
+    width:40,
+    height:60,
+    color:"red",
+    health:50
+};
+
+let gravity=0.8;
 let score=0;
-let questionIndex=0;
-let questionsPerLevel=3;
 
-function startGame(){
-    level=1;
-    life=3;
-    score=0;
-    questionIndex=0;
-    questionsPerLevel=3;
-    updateStats();
-    loadQuestion();
+function drawRect(obj){
+    ctx.fillStyle=obj.color;
+    ctx.fillRect(obj.x,obj.y,obj.width,obj.height);
 }
 
-function updateStats(){
-    document.getElementById("level").innerText=level;
-    document.getElementById("life").innerText=life;
+function update(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Player movement
+    player.dy+=gravity;
+    player.y+=player.dy;
+    player.x+=player.dx;
+
+    if(player.y+player.height>canvas.height){
+        player.y=canvas.height-player.height;
+        player.dy=0;
+        player.jumping=false;
+    }
+
+    // Enemy simple AI
+    if(enemy.x>player.x){
+        enemy.x-=1;
+    }else{
+        enemy.x+=1;
+    }
+
+    drawRect(player);
+    drawRect(enemy);
+
+    checkCollision();
+
+    document.getElementById("health").innerText=player.health;
     document.getElementById("score").innerText=score;
+
+    requestAnimationFrame(update);
 }
 
-function loadQuestion(){
-    if(life<=0){
-        alert("❌ Game Over!");
-        startGame();
-        return;
+function checkCollision(){
+    if(player.x<enemy.x+enemy.width &&
+       player.x+player.width>enemy.x &&
+       player.y<enemy.y+enemy.height &&
+       player.y+player.height>enemy.y){
+
+        player.health-=0.5;
+        if(player.health<=0){
+            alert("Game Over!");
+            location.reload();
+        }
+    }
+}
+
+document.addEventListener("keydown",function(e){
+    if(e.key==="ArrowRight") player.dx=5;
+    if(e.key==="ArrowLeft") player.dx=-5;
+
+    if(e.key===" " && !player.jumping){
+        player.dy=-15;
+        player.jumping=true;
     }
 
-    if(questionIndex>=questionsPerLevel){
-        levelUp();
-        return;
-    }
-
-    let q=questions[Math.floor(Math.random()*questions.length)];
-    document.getElementById("question").innerText=q.q;
-
-    let answersDiv=document.getElementById("answers");
-    answersDiv.innerHTML="";
-
-    q.a.forEach((ans,i)=>{
-        let btn=document.createElement("button");
-        btn.innerText=ans;
-        btn.onclick=()=>{
-            if(i===q.c){
-                score+=10;
-                alert("✅ সঠিক উত্তর!");
-            }else{
-                life--;
-                alert("❌ ভুল উত্তর!");
+    if(e.key==="a"){
+        // Attack
+        if(Math.abs(player.x-enemy.x)<50){
+            enemy.health-=10;
+            score+=10;
+            if(enemy.health<=0){
+                enemy.x=800;
+                enemy.health=50;
             }
-            questionIndex++;
-            updateStats();
-            loadQuestion();
-        };
-        answersDiv.appendChild(btn);
-    });
-}
-
-function levelUp(){
-    level++;
-    questionIndex=0;
-
-    if(level>20){
-        alert("🏆 অভিনন্দন! তুমি সব লেভেল শেষ করেছ!");
-        startGame();
-        return;
+        }
     }
+});
 
-    if(questionsPerLevel<10){
-        questionsPerLevel++;
+document.addEventListener("keyup",function(e){
+    if(e.key==="ArrowRight"||e.key==="ArrowLeft"){
+        player.dx=0;
     }
+});
 
-    alert("🎉 Level Up! এখন Level "+level);
-    updateStats();
-    loadQuestion();
-}
-
-startGame();
-
+update();
 </script>
 
 </body>
